@@ -30,3 +30,13 @@ jobs:
       run: sudo apt install gitleaks -y
     - name: Gitleaks Code Scan
       run: gitleaks detect source . -r gitleaks-report.json -f json
+    - name: Unit Test Cases
+      run: mvn test
+    - name: Build Project
+      run: mvn package
+    - name: Upload JAR artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: app-jar
+        path: target/*.jar 
+          
