@@ -2,7 +2,17 @@ name: CICD Pipeline
 
 on:
   push:
-    branches: [ "practice" ]
+    branches: 
+      - "practice"
+
+  pull_request:
+    branches:
+      - "practice"
+    types:
+      - opened
+      - synchronize   # when commits are pushed to the PR
+      - reopened
+      - closed  
 
 jobs:
   compile:
