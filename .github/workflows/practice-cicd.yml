@@ -1,18 +1,19 @@
 name: CICD Pipeline 
 
 on:
+  # 1. Run when commits are pushed directly to main (usually after merge)
   push:
-    branches: 
-      - "practice"
+    branches:
+      - main
 
+  # 2. Run when a PR is created or updated *targeting main*
   pull_request:
     branches:
-      - "practice"
+      - main
     types:
       - opened
-      - synchronize   # when commits are pushed to the PR
-      - reopened
-      - closed  
+      - synchronize
+      - reopened  
 
 jobs:
   compile:
