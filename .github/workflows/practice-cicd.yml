@@ -15,19 +15,39 @@ on:
       - synchronize
       - reopened  
 
+  # 3. Manual trigger with Jenkins-like parameters
+  workflow_dispatch:
+    inputs:
+      scan_level:
+        description: "Choose scan level"
+        required: true
+        default: "normal"
+        type: choice
+        options:
+          - normal
+          - deep
+          - skip
+
 jobs:
   compile:
     runs-on: ubuntu-latest
+
     steps:
     - uses: actions/checkout@v4
+
+    - name: Show chosen scan level
+      run: echo "Scan Level = ${{ github.event.inputs.scan_level }}"
+
     - name: Set up JDK 17
       uses: actions/setup-java@v4
       with:
         java-version: '17'
         distribution: 'temurin'
         cache: maven
+
     - name: Build with Maven
       run: mvn compile
+
     - name: Trivy Installation
       run: |
         sudo apt-get install -y wget apt-transport-https gnupg lsb-release
@@ -35,28 +55,43 @@ jobs:
         echo deb https://aquasecurity.github.io/trivy-repo/deb $(lsb_release -sc) main | sudo tee -a /etc/apt/sources.list.d/trivy.list
         sudo apt-get update -y
         sudo apt-get install -y trivy
+
     - name: Trivy FS Scan
-      run: trivy fs --format table -o fs-report.json .
+      run: |
+        if [ "${{ github.event.inputs.scan_level }}" = "skip" ]; then
+          echo "Skipping Trivy scan as requested."
+        else
+          echo "Running Trivy scan with mode: ${{ github.event.inputs.scan_level }}"
+          trivy fs --format table -o fs-report.json .
+        fi
+
     - name: Gitleaks Installation
       run: sudo apt install gitleaks -y
+
     - name: Gitleaks Code Scan
       run: gitleaks detect source . -r gitleaks-report.json -f json
+
     - name: Unit Test Cases
       run: mvn test
+
     - name: Build Project
       run: mvn package
+
     - name: Upload JAR artifact
       uses: actions/upload-artifact@v4
       with:
         name: app-jar
         path: target/*.jar
+
     - name: Set up Docker
       uses: docker/setup-docker-action@v4
+
     - name: Login to Docker Hub
       uses: docker/login-action@v3
       with:
         username: ${{ vars.DOCKERHUB_USERNAME }}
         password: ${{ secrets.DOCKERHUB_TOKEN }}
+
     - name: Build and Push Docker image
       uses: docker/build-push-action@v6
       with:
@@ -64,5 +99,3 @@ jobs:
         push: true
         tags: saikrishna1488/bankapp:latest
         file: ./Dockerfile
-    
-          
